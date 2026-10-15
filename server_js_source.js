@@ -16,9 +16,14 @@ const PORT = Number(process.env.PORT || 8787);
 const HOST = process.env.HOST || '127.0.0.1';
 
 // 카카오 로그인 설정 - 로컬 테스트 서버 전용
-const KAKAO_REST_API_KEY = '5074a624b0e5fdcc32a03e944c36236e';
-const KAKAO_CLIENT_SECRET = 'T9EW03UyZ6gKOIuhRrLSBMSnEE956gWQ';
+const KAKAO_REST_API_KEY =
+  process.env.KAKAO_REST_API_KEY || '';
+
+const KAKAO_CLIENT_SECRET =
+  process.env.KAKAO_CLIENT_SECRET || '';
+
 const KAKAO_REDIRECT_URI =
+  process.env.KAKAO_REDIRECT_URI ||
   'http://127.0.0.1:8080/auth/kakao/callback';
 
 const KAKAO_WEB_ORIGIN = new URL(KAKAO_REDIRECT_URI).origin;
