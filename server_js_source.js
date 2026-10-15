@@ -26,8 +26,15 @@ const KAKAO_REDIRECT_URI =
   process.env.KAKAO_REDIRECT_URI ||
   'http://127.0.0.1:8080/auth/kakao/callback';
 
-const KAKAO_WEB_ORIGIN = new URL(KAKAO_REDIRECT_URI).origin;
-const SESSION_COOKIE = 'deux_mock_session';
+  const KAKAO_WEB_ORIGIN = new URL(KAKAO_REDIRECT_URI).origin;
+  const KAKAO_ALLOWED_ORIGINS = new Set([
+    KAKAO_WEB_ORIGIN,
+    'https://deux-lapins-shop.web.app',
+    'https://deux-lapins-shop.firebaseapp.com',
+    'http://localhost:8080',
+    'http://127.0.0.1:8080'
+  ]);
+  const SESSION_COOKIE = 'deux_mock_session';
 
 const sessions = new Map();
 
@@ -1262,9 +1269,14 @@ function cookieValue(request, name) {
 }
 
 function setSessionCookie(res, token, maxAge) {
+  const deployed = KAKAO_REDIRECT_URI.startsWith('https://');
+  const cookiePolicy = deployed
+    ? 'SameSite=None; Secure'
+    : 'SameSite=Lax';
+
   res.setHeader(
     'Set-Cookie',
-    `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}`
+    `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; ${cookiePolicy}; Max-Age=${maxAge}`
   );
 }
 
@@ -1484,8 +1496,9 @@ const server = http.createServer(async (req, res) => {
   const origin = req.headers.origin;
 
   if (isAuth) {
-    if (origin && origin !== KAKAO_WEB_ORIGIN) {
-      res.writeHead(403);
+    if (origin && !KAKAO_ALLOWED_ORIGINS.has(origin)) {
+      console.warn('[KAKAO CORS DENIED]', { origin });
+      res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({
         success: false,
         error: {
@@ -1497,23 +1510,12 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (origin) {
-      res.setHeader(
-        'Access-Control-Allow-Origin',
-        KAKAO_WEB_ORIGIN
-      );
-
-      res.setHeader(
-        'Access-Control-Allow-Credentials',
-        'true'
-      );
-
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.setHeader('Vary', 'Origin');
     }
   } else {
-    res.setHeader(
-      'Access-Control-Allow-Origin',
-      '*'
-    );
+    res.setHeader('Access-Control-Allow-Origin', '*');
   }
 
   res.setHeader(
