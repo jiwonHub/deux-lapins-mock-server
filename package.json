@@ -1,0 +1,11 @@
+{
+    "name": "deux-lapins-mock-server",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+      "start": "node server_js_source.js"
+    },
+    "engines": {
+      "node": ">=22.13.0"
+    }
+  }
