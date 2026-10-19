@@ -38,6 +38,28 @@ class MockAccountService {
     if (!condition) this.fail(code, message, status);
   }
 
+  registerKakao(user) {
+    const providerId = String(user.id);
+    let id = this.providers.get(providerId);
+
+    if (!id) {
+      id = `mock-user-${crypto.randomUUID()}`;
+      this.providers.set(providerId, id);
+
+      this.profiles.set(id, {
+        id,
+        name: String(user.nickname || '').slice(0, 100),
+        email: String(user.email || '').slice(0, 255),
+        phone: String(user.phone || '').slice(0, 30),
+        created_at: new Date().toISOString()
+      });
+
+      this.addresses.set(id, []);
+    }
+
+    return id;
+  }
+
   profileData(data) {
     const name = String(data?.name ?? '').trim();
     const email = String(data?.email ?? '').trim();
@@ -84,7 +106,8 @@ class MockAccountService {
           id,
           name: String(data?.nickname ?? '').trim().slice(0, 100),
           email: String(data?.email ?? '').trim().slice(0, 255),
-          phone: ''
+          phone: '',
+          created_at: new Date().toISOString()
         });
         this.addresses.set(id, []);
       }

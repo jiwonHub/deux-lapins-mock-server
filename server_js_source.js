@@ -581,6 +581,42 @@ function dispatchRoute(method, url, b) {
     return { status: 'ok' };
   }
 
+  if (method === 'GET' && path === '/admin/customers') {
+    return [...accountService.profiles.values()].map(profile => {
+      const memberOrders = orders.filter(
+        o => o.user_id === profile.id
+      );
+
+      const defaultAddress = (
+        accountService.addresses.get(profile.id) || []
+      ).find(a => a.is_default);
+
+      return {
+        id: profile.id,
+        name: profile.name || '',
+        email: profile.email || '',
+        phone: profile.phone || '',
+        address: defaultAddress
+          ? [
+              defaultAddress.address,
+              defaultAddress.detail_address
+            ].filter(Boolean).join(' ')
+          : '',
+        order_count: memberOrders.length,
+        total_spent: memberOrders
+          .filter(o =>
+            o.payment_status === 'paid' &&
+            o.admin_status !== 'cancelled'
+          )
+          .reduce(
+            (sum, o) => sum + Number(o.total_amount || 0),
+            0
+          ),
+        joined_at: profile.created_at || null
+      };
+    });
+  }
+
   if (method === 'GET' && path === '/products') {
     return products.filter(p => !p.deleted);
   }
@@ -1472,6 +1508,17 @@ async function authRoute(method, path, body, req, res) {
     email: user.email,
     phone: user.phone
   });
+
+  // 카카오로 실제 인증한 회원을 Mock 회원 목록에도 반영한다.
+  const beforeAccount = accountService.snapshot();
+
+  try {
+    accountService.registerKakao(user);
+    persistState();
+  } catch (error) {
+    accountService.restore(beforeAccount);
+    throw error;
+  }
 
   const sessionId = crypto.randomBytes(32).toString('hex');
 
